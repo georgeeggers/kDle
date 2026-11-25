@@ -110,6 +110,7 @@
           <button class='btn main' onclick={() => {showPopup = false}}>Continue</button>
         {:else if manager.gameState == GameState.Lost}
           <button class='btn fail' onclick={restartGame}>Restart</button>
+          <button class='btn fail' onclick={() => {showPopup = false}}>Analyze</button>
         {:else}
           <button class='btn main' onclick={restartGame}>Restart</button>
         {/if}
@@ -147,6 +148,9 @@
       <label id='board{i}' class="wordleThingContainer" animate:flip ={{ duration: 250 }} for='focus{i}'>
           <WordleThing currentGuess={manager.guess} guesses={manager.guessHistory} word={word} index={i} />
           <button onclick={() => focusBoard(i)} class='invis' id='focus{i}'>Focus{i}</button>  
+          {#if manager.gameState == GameState.Lost}
+            <p>{word}</p>
+          {/if}
       </label>
   {/each}
 </div>
