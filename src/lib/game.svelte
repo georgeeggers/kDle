@@ -1,11 +1,12 @@
 <script lang='ts'>
     import { onDestroy, onMount } from "svelte";
-    import { attemptAddLetter, attemptGuess, deleteLetter, keydownLogic, manager, restartGame } from "./gameManager.svelte";
+    import { attemptAddLetter, attemptGuess, deleteLetter, GameState, keydownLogic, manager, restartGame } from "./gameManager.svelte";
     import { getKeyboardData, testWord } from "./utils";
     import WordleThing from "./wordleThing.svelte";
     import { WORDS } from "./wordlist";
     import { flip } from "svelte/animate";
-    import { Send, Delete } from "@lucide/svelte";
+    import { Send, Delete, ChevronLeft, RefreshCcw, defaultAttributes } from "@lucide/svelte";
+    import { replace } from "svelte-spa-router";
 
     $effect(() => {
       if(manager.guess.length == 5){
@@ -56,7 +57,90 @@
 
     const classes = ['incorrect', 'misplaced', 'correct', ""]
 
+    let showPopup = $state(false);
+    let deltaTime = $state(0);
+
+    const formatTime = (ms: number) => {
+      const milliseconds = ms % 1000;
+      ms -= milliseconds;
+      ms /= 1000;
+      const seconds = ms % 60;
+      ms -= seconds;
+      ms /= 60;
+      if(ms > 0){
+        return `${ms}:${seconds}.${milliseconds}`
+      }
+      return `${seconds}.${milliseconds}`
+    }
+
+    $effect(() => {
+      if(manager.gameState != GameState.InProgress){
+        if(manager.started){
+          const now = new Date();
+          // @ts-ignore
+          deltaTime = now - manager.started;
+          console.log(formatTime(deltaTime));
+        }
+        
+        showPopup = true;
+      } else {
+        showPopup = false;
+      }
+    })
+
 </script>
+
+{#if showPopup}
+  <div class="popup">
+    <div class="innerPopup">
+      <p class='title'>{["You won", "Not enough guesses", "You Lost", ""][manager.gameState]}</p>
+      <p class='body'>{["You won! Congratulations!", "You dont have enough guesses to complete all boards", "You lost... womp womp :(", ""][manager.gameState]}</p>
+
+      {#if manager.gameState == GameState.Won}
+        <div class="stats">
+          <p>Time - {formatTime(deltaTime)}</p>
+          <p>{Math.round(deltaTime / 10 / parseInt("" + manager.boardCount)) / 100} seconds / board</p>
+        </div>
+      {/if}
+
+
+      <div class="popupActions">
+        {#if manager.gameState == GameState.Hopeless}
+          <button class='btn fail' onclick={restartGame}>Restart</button>
+          <button class='btn main' onclick={() => {showPopup = false}}>Continue</button>
+        {:else if manager.gameState == GameState.Lost}
+          <button class='btn fail' onclick={restartGame}>Restart</button>
+        {:else}
+          <button class='btn main' onclick={restartGame}>Restart</button>
+        {/if}
+      </div>
+    </div>
+
+  </div>
+{/if}
+
+<div class="topbar">
+
+  <div class="buttons">
+    <button onclick={() => replace('/')}>
+      <div class="svgWrapper">
+        <ChevronLeft size=20 />
+      </div>
+    </button>
+
+    <button onclick={restartGame}>
+      <div class="svgWrapper">
+        <RefreshCcw size=20 />
+      </div>
+    </button>
+  </div>
+
+  <div class="progressContainer">
+    <p>{manager.words.length} left ({manager.remainingGuesses} guesses)</p>
+    <div class="progressBar" style='width: {Math.round(100 - (manager.words.length / (manager.boardCount as number) * 100))}%;'>
+    </div>
+  </div>
+</div>
 
 <div class="boardContainer scrollOverflow">
   {#each manager.words as word, i (word)}
@@ -100,7 +184,112 @@
 
 <style>
 
+  .stats {
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+  }
 
+  .popupActions {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    margin-top: auto;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+
+  .popupActions button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popup {
+    display: flex;
+    position: fixed;
+    left: 0px;
+    top: 72px;
+    width: 100vw;
+    height: calc(100% - 72px);
+    backdrop-filter: brightness(0.4);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .innerPopup {
+    width: 240px;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-sizing: border-box;
+    background-color: var(--bg2);
+    border: 1px solid var(--bg3);
+    padding: 10px;
+  }
+
+  .innerPopup  .title {
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  .innerPopup .body {
+    font-size: 14px;
+    color: var(--text2);
+  }
+  
+  .buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .buttons button {
+    width: fit-content;
+    background: none;
+    border: none;
+  }
+
+  .progressContainer {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    height: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    background-color: var(--bg1);
+    border: 1px solid var(--bg3)
+  }
+
+  .progressContainer p {
+    position: absolute;
+    right: 5px;
+    font-size: 12px;
+  }
+
+  .progressBar {
+    height: 100%;
+    display: flex;
+    background-color: var(--main3);
+    transition: width .25s ease;
+  }
+
+  .topbar {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px;
+    background-color: var(--bg2);
+    height: 72px;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+  }
 
   .keyboard {
     width: 100%;
@@ -143,7 +332,7 @@
     gap: 10px;
     box-sizing: border-box;
     padding: 10px;
-    height: calc(100% - 200px);
+    height: calc(100% - 272px);
   }
 
   .wordleThingContainer {

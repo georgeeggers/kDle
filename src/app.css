@@ -1,5 +1,4 @@
 :root {
-    font-family: Arial, Helvetica, sans-serif;
     line-height: 1.5;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
@@ -67,6 +66,10 @@
         var(--main1);
   touch-action: manipulation;
 
+}
+
+* {
+    font-family: monospace;
 }
 
 .lucide-search, .lucide-list-filter-plus {

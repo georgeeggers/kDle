@@ -1,6 +1,7 @@
 <script lang='ts'>
     import { push } from "svelte-spa-router";
     import { manager } from "./gameManager.svelte";
+    import Toggle from "./toggle.svelte";
 
 
 </script>
@@ -25,6 +26,14 @@
                 <p class='body'>Number of guesses you have to spare</p>
             </div>
             <input bind:value={manager.spareGuesses} placeholder='0'>
+        </div>
+
+        <div class="row">
+            <div class="text">
+                <p class='heading'>Autosolve</p>
+                <p class='body'>Automatically solve boards with 5 green letters</p>
+            </div>
+            <Toggle bind:value={manager.autoSolve} />
         </div>
 
         <button class='btn main' onclick={() => push('/game')}>Start</button>

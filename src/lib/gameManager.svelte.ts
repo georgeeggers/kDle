@@ -1,12 +1,12 @@
 import { ANSWER_WORDS } from "./answerList";
-import { getRandomInt, LETTERS } from "./utils";
+import { getAutosolveData, getRandomInt, LETTERS } from "./utils";
 import { WORDS } from "./wordlist";
 
-enum GameState {
-    InProgress,
+export enum GameState {
     Won,
     Hopeless,
-    Lost
+    Lost,
+    InProgress
 }
 
 export type GameManager = {
@@ -19,6 +19,8 @@ export type GameManager = {
     gameState: GameState,
     focused: number,
     spareGuesses: number,
+    autoSolve: boolean,
+    started: Date | null,
 }
 
 export let manager: GameManager = $state({
@@ -31,6 +33,8 @@ export let manager: GameManager = $state({
     boardCount: 2,
     gameState: GameState.InProgress,
     focused: -1,
+    autoSolve: false,
+    started: null
 });
 
 export const restartGame = () => {
@@ -46,15 +50,23 @@ export const restartGame = () => {
         }
         manager.words.push(word);
     }
-    manager.remainingGuesses = manager.boardCount + manager.spareGuesses;
+    if(typeof manager.boardCount){
+
+    }
+    manager.remainingGuesses = parseInt('' + manager.boardCount) + parseInt('' + manager.spareGuesses);
+    manager.started = new Date();
+}
+
+export const focusBoard = () => {
+    document.getElementById(`scrollHelper${manager.focused}`)?.scrollIntoView({ behavior: 'smooth' });    
 }
 
 export const cycleFocus = () => {
     manager.focused = (manager.focused + 1) % manager.words.length;
-    document.getElementById(`scrollHelper${manager.focused}`)?.scrollIntoView({ behavior: 'smooth' });    
+    focusBoard();
 }
 
-export const attemptGuess = () => {
+export const attemptGuessBackend = () => {
     if(manager.gameState == GameState.Lost){
         return;
     }
@@ -72,8 +84,10 @@ export const attemptGuess = () => {
                     manager.focused = 0;
                 }
                 offset++;
+                break;
             }
         }
+        focusBoard();
     }
     manager.guess = "";
 
@@ -84,7 +98,27 @@ export const attemptGuess = () => {
     } else if (manager.words.length > manager.remainingGuesses){
         manager.gameState = GameState.Hopeless
     }
+}
 
+export const attemptGuess = () => {
+    attemptGuessBackend();
+    if(manager.autoSolve){
+        for(let i of manager.words){
+            if(getAutosolveData(manager.guessHistory, i)){
+                manager.words.splice(manager.words.indexOf(i), 1);
+                manager.guessHistory.push(i);
+                manager.remainingGuesses--;
+
+                if(manager.words.length == 0){
+                    manager.gameState = GameState.Won
+                } else if(manager.remainingGuesses == 0){
+                    manager.gameState = GameState.Lost
+                } else if (manager.words.length > manager.remainingGuesses){
+                    manager.gameState = GameState.Hopeless
+                }
+            }
+        }
+    }
 }
 
 export const attemptAddLetter = (letter: string) => {

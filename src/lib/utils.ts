@@ -1,3 +1,4 @@
+import { manager } from "./gameManager.svelte";
 import { WORDS } from "./wordlist";
 
 export enum LetterStatus {
@@ -80,9 +81,27 @@ export const getHelperData = (guesses: string[], word: string,) => {
     return data.join("").toUpperCase();
 }
 
+export const getAutosolveData = (guesses: string[], word: string,) => {
+    let data = [' ', ' ', ' ', ' ', ' '];
+    for(let guess of guesses){
+        let index = 0;
+        for(let i of testWord(word, guess)){
+            if(i == LetterStatus.Correct){
+                data[index] = word[index];
+            }
+            index++;
+        }
+    }
+    for(let i of data){
+        if(i == " "){
+            return false;
+        }
+    }
+    return true;
+}
+
 export const getHelperDataBonus = (guesses: string[], word: string,) => {
     let data = [' ', ' ', ' ', ' ', ' '];
-    let invalidLetters = [];
     for(let guess of guesses){
         let index = 0;
         for(let i of testWord(word, guess)){
@@ -97,6 +116,7 @@ export const getHelperDataBonus = (guesses: string[], word: string,) => {
 
 export const getGuessColor = (guesses: string[], word: string, currentGuess: string) => {
     let invalidLetters: string[] = [];
+    let validLetters: string[] = [];
     for(let guess of guesses){
         const data = testWord(word, guess);
         for(let i = 0; i < 5; i++){
@@ -105,7 +125,10 @@ export const getGuessColor = (guesses: string[], word: string, currentGuess: str
                     return false;
                 }
             }
-            if(!invalidLetters.includes(guess[i]) && data[i] == LetterStatus.Incorrect){
+            if(!validLetters.includes(guess[i]) && (data[i] == LetterStatus.Correct || data[i] == LetterStatus.Misplaced)){
+                validLetters.push(guess[i]);
+            }
+            if(!invalidLetters.includes(guess[i]) && !validLetters.includes(guess[i]) && data[i] == LetterStatus.Incorrect){
                 invalidLetters.push(guess[i]);
             }
         }
@@ -184,6 +207,10 @@ export const getKeyboardData = (guesses: string[], word: string) => {
         "x": LetterStatus.Unknown,
         "y": LetterStatus.Unknown,
         "z": LetterStatus.Unknown
+    }
+
+    if(manager.words.length == 0){
+        return result;
     }
 
     for(let guess of guesses){
